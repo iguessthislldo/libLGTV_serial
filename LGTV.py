@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Sample Windows script which uses the libLGTV_serial library
 # Can be called, for example by doing "python LGTV.py --poweroff"
 #

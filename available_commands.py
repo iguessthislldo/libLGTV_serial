@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # Shows all available commands for your TV
 #
 from libLGTV_serial import LGTV
