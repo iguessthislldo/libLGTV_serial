@@ -1,4 +1,4 @@
-# Shows all available commands for your TV 
+# Shows all available commands for your TV
 #
 from libLGTV_serial import LGTV
 

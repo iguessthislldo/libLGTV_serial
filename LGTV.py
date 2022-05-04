@@ -12,7 +12,7 @@ model = '42LK450'                    # Change this to your TV's model
 serial_port = "\\.\COM4"
 
 # Verify passed command
-if len(sys.argv) != 2: 
+if len(sys.argv) != 2:
     print('Usage: {0} <command>'.format(sys.argv[0]))
     print('Example: {0} --togglepower'.format(sys.argv[0]))
     sys.exit(1)

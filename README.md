@@ -8,7 +8,7 @@ libLGTV_serial is a Python library to control LG TVs (or monitors with serial po
     - Debian/Ubuntu Linux: `sudo apt-get install python-serial`
 
 ## Supported Models/Operating Systems ##
-- All OSes are supported. If you run into trouble please let me know. 
+- All OSes are supported. If you run into trouble please let me know.
 - A large number of LG TVs and monitors are supported -- a full list can be found on [the wiki](https://github.com/suan/libLGTV_serial/wiki/Supported-TV-Models). If your model isn't listed there, you can...
   - Modify the code and add it yourself. The code is pretty simple and straightforward. Look up the codes from the Owner's Manual on the included CD-ROM or from [LG's Support Website](http://www.lg.com/us/support/index.jsp) (Look for the section titled "EXTERNAL CONTROL THROUGH RS-232C"). If you added your model this way I would really appreciate a pull request! =)
   - OR
