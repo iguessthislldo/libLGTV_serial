@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import serial
@@ -5,7 +6,6 @@ import os
 import time
 import tempfile
 from filelock import FileLock
-# from pprint import pprint
 
 
 actual_codes = {}
@@ -222,10 +222,6 @@ class LGTV:
             data = toggledata[1]
         return code[0:6] + data
 
-
-
-# ======= These are the methods you'll most probably want to use ==========
-
     def send(self, command):
         if command in self.debounces:
             wait_secs = self.debounces[command]
@@ -243,7 +239,6 @@ class LGTV:
         return response
 
     def available_commands(self):
-        print("Some features (such as a 4th HDMI port) might not be available for your TV model")
         commands = self.codes.copy()
         commands.update(self.toggles)
         for command in commands.keys():
@@ -260,4 +255,21 @@ class LGTV:
     def debounce(self, command, wait_secs=0.5):
         self.debounces[command] = wait_secs
 
-# end class LGTV
+
+if __name__ == '__main__':
+    default_serial = '/dev/ttyUSB0'
+
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument('model', metavar='MODEL')
+    parser.add_argument('-s', '--serial', metavar='SERIAL_DEVICE', default=default_serial)
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument('-l', '--list-commands', action='store_true')
+    action.add_argument('-c', '--command', metavar='COMMAND')
+    args = parser.parse_args()
+
+    tv = LGTV(args.model, args.serial)
+    if args.list_commands:
+        tv.available_commands()
+    elif args.command:
+        print(tv.send(args.command))
