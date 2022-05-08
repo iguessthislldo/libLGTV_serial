@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import sys
 import serial
 import os
 import time
@@ -127,7 +128,13 @@ for suffix_codes, suffixes in reverse_code_map.items():
 
 
 class LGTV:
-    def __init__(self, model, port):
+    default_serial = '/dev/ttyUSB0'
+
+    @staticmethod
+    def data_to_int(data):
+        return int(data.decode(), base=16)
+
+    def __init__(self, model, port=None):
         self.model = model.upper()
 
         # Ignore digits which indicate the TV's screen size
@@ -135,8 +142,10 @@ class LGTV:
             self.codes = all_codes[self.model[3:]]  # Ignore the leading 'M' too
         else:
             self.codes = all_codes[self.model[2:]]
+        self.inputs_by_data = {self.data_to_int(v[-2:]): k[5:] for k, v in self.codes.items()
+            if k.startswith('input') and not k.endswith('status')}
 
-        self.port = port
+        self.port = port if port is not None else default_serial
         self.connection = None
         self.toggles = {
             'togglepower': ('poweron', 'poweroff'),
@@ -163,7 +172,13 @@ class LGTV:
     def status_code(self, code):
         return code[:-2] + b'ff'
 
-    def lookup(self, command):
+    @staticmethod
+    def insert_data(code, data_arg):
+        if data_arg is not None:
+            code = code[:-2] + f'{data_arg:02x}'[-2:].encode()
+        return code
+
+    def lookup(self, command, data_arg):
         if command.startswith('toggle'):
             states = self.toggles.get(command)
             state_codes = (self.codes[states[0]], self.codes[states[1]])
@@ -175,7 +190,7 @@ class LGTV:
             key = command[:-4] + 'level'
             return self.decrement(self.status_code(self.codes[key]))
         else:
-            return self.codes[command]
+            return self.insert_data(self.codes[command], data_arg)
 
     # Returns None on error, full response otherwise
     def query_full(self, code):
@@ -189,11 +204,12 @@ class LGTV:
         return response and response[-3:-1]
 
     # returns None on error, 2-char status for status commands, and True otherwise
-    def query(self, command):
+    def query(self, command, data_arg):
+        command_seq = self.lookup(command, data_arg)
         if self.is_status(command):
-            return self.query_data(self.lookup(command))
+            return self.query_data(command_seq)
         else:
-            return self.query_full(self.lookup(command)) and True
+            return self.query_full(command_seq) and True
 
     def is_status(self, command):
         return command.endswith('status') or command.endswith('level')
@@ -222,20 +238,25 @@ class LGTV:
             data = toggledata[1]
         return code[0:6] + data
 
-    def send(self, command):
+    def send(self, command, data_arg=None):
         if command in self.debounces:
             wait_secs = self.debounces[command]
             if self.connection == None:
                 self.connection = self.get_port()
             lock_path = os.path.join(tempfile.gettempdir(), '.' + command + '_lock')
             with FileLock(lock_path, timeout=0) as lock:
-                response = self.query(command)
+                response = self.query(command, data_arg)
                 time.sleep(wait_secs)
         else:
             if self.connection == None:
                 self.connection = self.get_port_ensured()
-            response = self.query(command)
+            response = self.query(command, data_arg)
         self.connection.close()
+        self.connection = None # Serial might complain the port doesn't exist
+        if isinstance(response, bytes):
+            response = self.data_to_int(response)
+            if command == 'inputstatus':
+                return self.inputs_by_data[response]
         return response
 
     def available_commands(self):
@@ -257,19 +278,24 @@ class LGTV:
 
 
 if __name__ == '__main__':
-    default_serial = '/dev/ttyUSB0'
-
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('model', metavar='MODEL')
-    parser.add_argument('-s', '--serial', metavar='SERIAL_DEVICE', default=default_serial)
+    parser.add_argument('-s', '--serial', metavar='SERIAL_DEVICE', default=LGTV.default_serial)
     action = parser.add_mutually_exclusive_group()
     action.add_argument('-l', '--list-commands', action='store_true')
     action.add_argument('-c', '--command', metavar='COMMAND')
+    parser.add_argument('-d', '--data', metavar='DATA')
     args = parser.parse_args()
 
     tv = LGTV(args.model, args.serial)
     if args.list_commands:
         tv.available_commands()
     elif args.command:
-        print(tv.send(args.command))
+        data = args.data
+        if data is not None:
+            data = int(data)
+        response = tv.send(args.command, data)
+        print(response)
+        if response is None:
+            sys.exit('TV rejected the command')
