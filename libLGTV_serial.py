@@ -22,7 +22,6 @@ common_codes = {
     'unmute'        : b"ke 00 01",
     'mutestatus'    : b"ke 00 ff"
 }
-actual_codes['LK450_etc'] = common_codes.copy()
 actual_codes['LK450_etc'].update({
     'inputdigitalantenna'   : b"xb 00 00",
     'inputdigitalcable'     : b"xb 00 01",
@@ -39,7 +38,6 @@ actual_codes['LK450_etc'].update({
     'inputhdmi4'            : b"xb 00 93",
     'inputstatus'           : b"xb 00 ff"
 })
-actual_codes['PJ250_etc'] = common_codes.copy()
 actual_codes['PJ250_etc'].update({
     'inputdtvantenna'       : b"xb 00 00",
     'inputdtvcable'         : b"xb 00 01",
@@ -55,7 +53,6 @@ actual_codes['PJ250_etc'].update({
     'inputhdmi3'            : b"xb 00 92",
     'inputstatus'           : b"xb 00 ff"
 })
-actual_codes['LE5300_etc'] = common_codes.copy()
 actual_codes['LE5300_etc'].update({
     'inputdtv'              : b"xb 00 00",
     'inputanalogantenna'    : b"xb 00 10",
@@ -70,7 +67,6 @@ actual_codes['LE5300_etc'].update({
     'inputhdmi4'            : b"xb 00 93",
     'inputstatus'           : b"xb 00 ff"
 })
-actual_codes['LC7D_etc'] = common_codes.copy()
 actual_codes['LC7D_etc'].update({
     'inputdtvantenna'       : b"xb 00 00",
     'inputdtvcable'         : b"xb 00 01",
@@ -85,7 +81,6 @@ actual_codes['LC7D_etc'].update({
     'inputhdmi2'            : b"xb 00 91",
     'inputstatus'           : b"xb 00 ff"
 })
-actual_codes['01C_etc'] = common_codes.copy()
 actual_codes['01C_etc'].update({
     'inputav'       : b"kb 00 02",
     'inputcomp1'    : b"kb 00 04",
@@ -96,7 +91,6 @@ actual_codes['01C_etc'].update({
     'inputhdmipc'   : b"kb 00 09",
     'inputstatus'   : b"kb 00 ff"
 })
-actual_codes['02C_etc'] = common_codes.copy()
 actual_codes['02C_etc'].update({
     'inputav'       : b"kb 00 02",
     'inputcomp1'    : b"kb 00 04",
@@ -106,10 +100,10 @@ actual_codes['02C_etc'].update({
     'inputhdmipc'   : b"kb 00 09",
     'inputstatus'   : b"kb 00 ff"
 })
-actual_codes['LB5D_etc'] = common_codes.copy()
 actual_codes['LB5D_etc'].update({
-    # NOTE: there is also a kb input control command, but at least on a 42LB5D,
-    # they don't seem able to select HDMI3.
+    # NOTE: There is also a kb input control command, but at least on a 42LB5D
+    # they don't seem able to select HDMI3. They also have a similar offset
+    # issue past rgbpc as described below.
     'inputdigitalantenna': b"xb 00 00",
     'inputdigitalcable': b"xb 00 01",
     'inputanalogantenna': b"xb 00 10",
@@ -145,7 +139,9 @@ all_codes = {}
 # populate model suffix lookup hash
 for suffix_codes, suffixes in reverse_code_map.items():
     for suffix in suffixes:
-        all_codes[suffix] = actual_codes[suffix_codes]
+        codes = common_codes.copy()
+        codes.update(actual_codes[suffix_codes])
+        all_codes[suffix] = codes
 
 
 class LGTV:
@@ -196,6 +192,10 @@ class LGTV:
     @staticmethod
     def insert_data(code, data_arg):
         if data_arg is not None:
+            if not isinstance(data_arg, int):
+                raise TypeError(f'data {repr()} is not an int')
+            if data_arg < 0 or data_arg > 255:
+                raise ValueError(f'data {repr()} is can not fit in a byte')
             code = code[:-2] + f'{data_arg:02x}'[-2:].encode()
         return code
 
