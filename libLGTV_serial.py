@@ -22,7 +22,7 @@ common_codes = {
     'unmute'        : b"ke 00 01",
     'mutestatus'    : b"ke 00 ff"
 }
-actual_codes['LK450_etc'].update({
+actual_codes['LK450_etc'] = {
     'inputdigitalantenna'   : b"xb 00 00",
     'inputdigitalcable'     : b"xb 00 01",
     'inputanalogantenna'    : b"xb 00 10",
@@ -37,8 +37,8 @@ actual_codes['LK450_etc'].update({
     'inputhdmi3'            : b"xb 00 92",
     'inputhdmi4'            : b"xb 00 93",
     'inputstatus'           : b"xb 00 ff"
-})
-actual_codes['PJ250_etc'].update({
+}
+actual_codes['PJ250_etc'] = {
     'inputdtvantenna'       : b"xb 00 00",
     'inputdtvcable'         : b"xb 00 01",
     'inputanalogantenna'    : b"xb 00 10",
@@ -52,8 +52,8 @@ actual_codes['PJ250_etc'].update({
     'inputhdmi2'            : b"xb 00 91",
     'inputhdmi3'            : b"xb 00 92",
     'inputstatus'           : b"xb 00 ff"
-})
-actual_codes['LE5300_etc'].update({
+}
+actual_codes['LE5300_etc'] = {
     'inputdtv'              : b"xb 00 00",
     'inputanalogantenna'    : b"xb 00 10",
     'inputanalogcable'      : b"xb 00 11",
@@ -66,8 +66,8 @@ actual_codes['LE5300_etc'].update({
     'inputhdmi3'            : b"xb 00 92",
     'inputhdmi4'            : b"xb 00 93",
     'inputstatus'           : b"xb 00 ff"
-})
-actual_codes['LC7D_etc'].update({
+}
+actual_codes['LC7D_etc'] = {
     'inputdtvantenna'       : b"xb 00 00",
     'inputdtvcable'         : b"xb 00 01",
     'inputanalogantenna'    : b"xb 00 10",
@@ -80,8 +80,8 @@ actual_codes['LC7D_etc'].update({
     'inputhdmi1'            : b"xb 00 90",
     'inputhdmi2'            : b"xb 00 91",
     'inputstatus'           : b"xb 00 ff"
-})
-actual_codes['01C_etc'].update({
+}
+actual_codes['01C_etc'] = {
     'inputav'       : b"kb 00 02",
     'inputcomp1'    : b"kb 00 04",
     'inputcomp2'    : b"kb 00 05",
@@ -90,8 +90,8 @@ actual_codes['01C_etc'].update({
     'inputhdmidtv'  : b"kb 00 08",
     'inputhdmipc'   : b"kb 00 09",
     'inputstatus'   : b"kb 00 ff"
-})
-actual_codes['02C_etc'].update({
+}
+actual_codes['02C_etc'] = {
     'inputav'       : b"kb 00 02",
     'inputcomp1'    : b"kb 00 04",
     'inputcomp2'    : b"kb 00 05",
@@ -99,8 +99,8 @@ actual_codes['02C_etc'].update({
     'inputhdmidtv'  : b"kb 00 08",
     'inputhdmipc'   : b"kb 00 09",
     'inputstatus'   : b"kb 00 ff"
-})
-actual_codes['LB5D_etc'].update({
+}
+actual_codes['LB5D_etc'] = {
     # NOTE: There is also a kb input control command, but at least on a 42LB5D
     # they don't seem able to select HDMI3. They also have a similar offset
     # issue past rgbpc as described below.
@@ -119,7 +119,7 @@ actual_codes['LB5D_etc'].update({
     'inputhdmi2': b"xb 00 91",
     'inputhdmi3': b"xb 00 92",
     'inputstatus': b"xb 00 ff",
-})
+}
 reverse_code_map = {
     'LK450_etc': ('LV2500', 'LV2520', 'LV3500', 'LV3520', 'LK330', 'LK430', 'LK450',
                     'LK520', 'PW340', 'PW350', 'PW350U', 'PW350R', 'LH20', 'LH200C',
