@@ -1,0 +1,49 @@
+switch:
+  - platform: mqtt
+    unique_id: lgtv_power
+    name: "LGTV Power"
+    state_topic: "lgtv/power"
+    command_topic: "lgtv/power/set"
+    payload_on: "ON"
+    payload_off: "OFF"
+    state_on: "ON"
+    state_off: "OFF"
+    qos: 2
+
+select:
+  - platform: mqtt
+    unique_id: lgtv_input
+    name: "LGTV Input"
+    state_topic: "lgtv/input"
+    command_topic: "lgtv/input/set"
+    options:
+      - "hdmi1"
+      - "hdmi2"
+      - "hdmi3"
+    qos: 2
+
+number:
+  - platform: mqtt
+    unique_id: lgtv_input
+    name: "LGTV Volume"
+    state_topic: "lgtv/volume"
+    command_topic: "lgtv/volume/set"
+    min: 0
+    max: 100
+    unit_of_measurement: "%"
+    qos: 2
+
+
+button:
+  - platform: mqtt
+    unique_id: lgtv_volume_up
+    name: "LGTV Volume Up"
+    command_topic: "lgtv/volume/set"
+    payload_press: 'UP'
+    qos: 2
+  - platform: mqtt
+    unique_id: lgtv_volume_down
+    name: "LGTV Volume Down"
+    command_topic: "lgtv/volume/set"
+    payload_press: 'DOWN'
+    qos: 2
