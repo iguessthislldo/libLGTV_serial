@@ -108,6 +108,19 @@ actual_codes['02C_etc'].update({
 })
 actual_codes['LB5D_etc'] = common_codes.copy()
 actual_codes['LB5D_etc'].update({
+    # NOTE: there is also a kb input control command, but at least on a 42LB5D,
+    # they don't seem able to select HDMI3.
+    'inputdigitalantenna': b"xb 00 00",
+    'inputdigitalcable': b"xb 00 01",
+    'inputanalogantenna': b"xb 00 10",
+    'inputanalogcable': b"xb 00 11",
+    'inputav1': b"xb 00 20",
+    'inputav2': b"xb 00 21",
+    'inputcomp1': b"xb 00 40",
+    'inputcomp2': b"xb 00 41",
+    # NOTE: The last byte for the rest of these is different than what is
+    # specified in the manual.
+    'inputrgbpc': b"xb 00 60",
     'inputhdmi1': b"xb 00 90",
     'inputhdmi2': b"xb 00 91",
     'inputhdmi3': b"xb 00 92",
@@ -264,7 +277,10 @@ class LGTV:
         if isinstance(response, bytes):
             response = self.data_to_int(response)
             if command == 'inputstatus':
-                return self.inputs_by_data[response]
+                try:
+                    return self.inputs_by_data[response]
+                except KeyError:
+                    pass
         return response
 
     def available_commands(self):
@@ -304,6 +320,9 @@ if __name__ == '__main__':
         if data is not None:
             data = int(data)
         response = tv.send(args.command, data)
-        print(response)
+        if isinstance(response, int):
+            print(hex(response))
+        else:
+            print(response)
         if response is None:
             sys.exit('TV rejected the command')
