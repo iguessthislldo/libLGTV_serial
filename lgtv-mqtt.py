@@ -15,6 +15,7 @@ class TvWrapper:
         self.last_known_volume = None
         self.update_interval = update_interval
         self.last_update = datetime.min
+        self.do_updates = False
 
     def command(self, name, data=None):
         print('Command:', name)
@@ -53,13 +54,14 @@ class TvWrapper:
         self.command('volumelevel', volume)
 
     def update(self):
-        now = datetime.now()
-        if (now - self.last_update) >= self.update_interval:
-            print('Updating...')
-            update_power(client, tv)
-            update_input(client, tv)
-            update_volume(client, tv)
-            self.last_update = now
+        if self.do_updates:
+            now = datetime.now()
+            if (now - self.last_update) >= self.update_interval:
+                print('Updating...')
+                update_power(client, tv)
+                update_input(client, tv)
+                update_volume(client, tv)
+                self.last_update = now
 
 
 parser = ArgumentParser()
@@ -109,10 +111,12 @@ def on_connect(client, userdata, flags, rc):
     print('Connected to broker with result code ' + str(rc))
     client.subscribe(args.topic_prefix + '+/set')
     client.subscribe(direct_command_topic)
+    tv.do_updates = True
 
 
 def on_disconnect(client, userdata, rc):
     print('Disconnected from broker')
+    tv.do_updates = False
 
 
 def on_message(client, userdata, msg):
