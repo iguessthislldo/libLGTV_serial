@@ -9,21 +9,27 @@ from libLGTV_serial import LGTV
 
 
 class TvWrapper:
-    def __init__(self, model, serial, update_interval):
-        self.tv = LGTV(model, serial)
-        self.last_known_input = None
-        self.last_known_volume = None
+    def __init__(self, model, serial, update_interval, fake=False):
+        self.tv = None if fake else LGTV(model, serial)
+        self.fake = fake
+        self.fake_on = False
+        self.last_known_input = 'hdmi1' if fake else None
+        self.last_known_volume = 0 if fake else None
         self.update_interval = update_interval
         self.last_update = datetime.min
         self.do_updates = False
 
     def command(self, name, data=None):
+        if self.fake:
+            raise ValueError('command can not be called if TV is fake')
         print('Command:', name)
         status = self.tv.send(name, data)
         print('Command status:', repr(status))
         return status
 
     def get_power(self):
+        if self.fake:
+            return self.fake_on
         return bool(self.command('powerstatus'))
 
     def set_power(self, set_to_on):
@@ -31,9 +37,14 @@ class TvWrapper:
             # Reset the last update it doesn't undo the fake power on status in
             # below in on_message.
             self.last_update = datetime.now()
-        self.command('poweron' if set_to_on else 'poweroff')
+        if self.fake:
+            self.fake_on = set_to_on
+        else:
+            self.command('poweron' if set_to_on else 'poweroff')
 
     def get_input(self):
+        if self.fake:
+            return self.last_known_input
         value = self.command('inputstatus')
         if value is None:
             return self.last_known_input
@@ -41,9 +52,14 @@ class TvWrapper:
         return value
 
     def set_input(self, input_name):
-        self.command('input' + input_name)
+        if self.fake:
+            self.last_known_input = input_name
+        else:
+            self.command('input' + input_name)
 
     def get_volume(self):
+        if self.fake:
+            return self.last_known_volume
         value = self.command('volumelevel')
         if value is None:
             return self.last_known_volume
@@ -51,7 +67,10 @@ class TvWrapper:
         return value
 
     def set_volume(self, volume):
-        self.command('volumelevel', volume)
+        if self.fake:
+            self.last_known_volume = volume
+        else:
+            self.command('volumelevel', volume)
 
     def update(self):
         if self.do_updates:
@@ -70,9 +89,10 @@ parser.add_argument('broker', metavar='MQTT_BROKER')
 parser.add_argument('--serial', '-s', metavar='SERIAL_DEVICE', default=LGTV.default_serial)
 parser.add_argument('--topic-prefix', metavar='MQTT_TOPIC_PREFIX', default='lgtv/')
 parser.add_argument('--interval', metavar='SECONDS', type=int, default=15)
+parser.add_argument('--fake', action='store_true')
 args = parser.parse_args()
 
-tv = TvWrapper(args.model, args.serial, timedelta(seconds=args.interval))
+tv = TvWrapper(args.model, args.serial, timedelta(seconds=args.interval), fake=args.fake)
 get_power_topic = args.topic_prefix + 'power'
 set_power_topic = get_power_topic + '/set'
 get_input_topic = args.topic_prefix + 'input'
