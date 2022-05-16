@@ -106,9 +106,13 @@ def update_volume(client, tv):
 
 
 def on_connect(client, userdata, flags, rc):
-    print("Connected with result code " + str(rc))
-    client.subscribe(args.topic_prefix + "+/set")
+    print('Connected to broker with result code ' + str(rc))
+    client.subscribe(args.topic_prefix + '+/set')
     client.subscribe(direct_command_topic)
+
+
+def on_disconnect(client, userdata, rc):
+    print('Disconnected from broker')
 
 
 def on_message(client, userdata, msg):
