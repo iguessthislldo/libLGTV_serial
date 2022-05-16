@@ -73,7 +73,7 @@ class TvWrapper:
             elif self.last_known_volume:
                 self.last_known_volume -= 1
         else:
-            self.tv.command('volume' + ('up' if inc else 'down'))
+            self.command('volume' + ('up' if inc else 'down'))
 
 
 class MqttWrapper:
@@ -188,6 +188,7 @@ class MqttWrapper:
                 except OSError:
                     print('Failed, going to try again...')
                 time.sleep(1)
+
 
 if __name__ == '__main__':
     parser = ArgumentParser()
