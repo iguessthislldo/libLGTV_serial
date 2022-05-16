@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from datetime import datetime, timedelta
+import time
 
 import paho.mqtt.client as mqtt
 
@@ -9,15 +10,12 @@ from libLGTV_serial import LGTV
 
 
 class TvWrapper:
-    def __init__(self, model, serial, update_interval, fake=False):
+    def __init__(self, model, serial, fake=False):
         self.tv = None if fake else LGTV(model, serial)
         self.fake = fake
         self.fake_on = False
         self.last_known_input = 'hdmi1' if fake else None
         self.last_known_volume = 0 if fake else None
-        self.update_interval = update_interval
-        self.last_update = datetime.min
-        self.do_updates = False
 
     def command(self, name, data=None):
         if self.fake:
@@ -33,10 +31,6 @@ class TvWrapper:
         return bool(self.command('powerstatus'))
 
     def set_power(self, set_to_on):
-        if set_to_on:
-            # Reset the last update it doesn't undo the fake power on status in
-            # below in on_message.
-            self.last_update = datetime.now()
         if self.fake:
             self.fake_on = set_to_on
         else:
@@ -72,105 +66,139 @@ class TvWrapper:
         else:
             self.command('volumelevel', volume)
 
-    def update(self):
-        if self.do_updates:
-            now = datetime.now()
-            if (now - self.last_update) >= self.update_interval:
-                print('Updating...')
-                update_power(client, tv)
-                update_input(client, tv)
-                update_volume(client, tv)
-                self.last_update = now
+    def inc_or_dec_volume(self, inc):
+        if self.fake:
+            if inc and self.last_known_volume < 100:
+                self.last_known_volume += 1
+            elif self.last_known_volume:
+                self.last_known_volume -= 1
+        else:
+            self.tv.command('volume' + ('up' if inc else 'down'))
 
 
-parser = ArgumentParser()
-parser.add_argument('model', metavar='MODEL')
-parser.add_argument('broker', metavar='MQTT_BROKER')
-parser.add_argument('--serial', '-s', metavar='SERIAL_DEVICE', default=LGTV.default_serial)
-parser.add_argument('--topic-prefix', metavar='MQTT_TOPIC_PREFIX', default='lgtv/')
-parser.add_argument('--interval', metavar='SECONDS', type=int, default=15)
-parser.add_argument('--fake', action='store_true')
-args = parser.parse_args()
+class MqttWrapper:
+    def __init__(self, tv, topic_prefix, update_interval):
+        self.tv = tv
 
-tv = TvWrapper(args.model, args.serial, timedelta(seconds=args.interval), fake=args.fake)
-get_power_topic = args.topic_prefix + 'power'
-set_power_topic = get_power_topic + '/set'
-get_input_topic = args.topic_prefix + 'input'
-set_input_topic = get_input_topic + '/set'
-get_volume_topic = args.topic_prefix + 'volume'
-set_volume_topic = get_volume_topic + '/set'
-direct_command_topic = args.topic_prefix + 'command'
+        self.topic_prefix = topic_prefix
+        self.get_power_topic = topic_prefix + 'power'
+        self.set_power_topic = self.get_power_topic + '/set'
+        self.get_input_topic = topic_prefix + 'input'
+        self.set_input_topic = self.get_input_topic + '/set'
+        self.get_volume_topic = topic_prefix + 'volume'
+        self.set_volume_topic = self.get_volume_topic + '/set'
+        self.direct_command_topic = topic_prefix + 'command'
 
+        self.update_interval = update_interval
+        self.last_update = datetime.min
 
-def publish(client, topic, message):
-    print(f'Publish: {topic}: {message}')
-    client.publish(topic, message, qos=2)
+        self.client = mqtt.Client()
+        self.client.on_connect = self.on_connect
+        self.client.on_disconnect = self.on_disconnect
+        self.client.on_message = self.on_message
+        self.connected = False
 
+    def publish(self, topic, message):
+        print(f'Publish: {topic}: {message}')
+        self.client.publish(topic, message, qos=2)
 
-def update_power_to(client, set_to_on):
-    publish(client, get_power_topic, 'ON' if set_to_on else 'OFF')
-
-
-def update_power(client, tv):
-    update_power_to(client, tv.get_power())
-
-
-def update_input(client, tv):
-    value = tv.get_input()
-    if value is not None:
-        publish(client, get_input_topic, value)
-
-
-def update_volume(client, tv):
-    value = tv.get_volume()
-    if value is not None:
-        publish(client, get_volume_topic, str(value))
-
-
-def on_connect(client, userdata, flags, rc):
-    print('Connected to broker with result code ' + str(rc))
-    client.subscribe(args.topic_prefix + '+/set')
-    client.subscribe(direct_command_topic)
-    tv.do_updates = True
-
-
-def on_disconnect(client, userdata, rc):
-    print('Disconnected from broker')
-    tv.do_updates = False
-
-
-def on_message(client, userdata, msg):
-    m = msg.payload.decode()
-    print(f'Received: {msg.topic}: {m}')
-    if msg.topic == set_power_topic:
-        set_to_on = {'ON': True, 'OFF': False}[m]
-        tv.set_power(set_to_on)
+    def update_power_to(self, set_to_on):
         if set_to_on:
-            # If off, it will take a while for it to report that it's on and
-            # this is a pain to deal with. Just pretend it turned on
-            # successfully.
-            update_power_to(client, True)
-        else:
-            update_power(client, tv)
-    elif msg.topic == set_input_topic:
-        tv.set_input(m)
-        update_input(client, tv)
-    elif msg.topic == set_volume_topic:
-        if m in ('UP', 'DOWN'):
-            tv.command('volume' + m.lower())
-        else:
-            tv.set_volume(int(m))
-        update_volume(client, tv)
-    elif msg.topic == direct_command_topic:
-        tv.command(m)
+            # Reset the last update it doesn't undo the fake power on status in
+            # below in on_message.
+            self.last_update = datetime.now()
+        self.publish(self.get_power_topic, 'ON' if set_to_on else 'OFF')
 
+    def update_power(self):
+        self.update_power_to(tv.get_power())
 
-client = mqtt.Client()
-client.on_connect = on_connect
-client.on_disconnect = on_disconnect
-client.on_message = on_message
-client.connect(args.broker, 1883, 60)
+    def update_input(self):
+        value = self.tv.get_input()
+        if value is not None:
+            self.publish(self.get_input_topic, value)
 
-while True:
-    client.loop()
-    tv.update()
+    def update_volume(self):
+        value = self.tv.get_volume()
+        if value is not None:
+            self.publish(self.get_volume_topic, str(value))
+
+    def update_all(self):
+        now = datetime.now()
+        if (now - self.last_update) >= self.update_interval:
+            print('Updating...')
+            self.update_power()
+            self.update_input()
+            self.update_volume()
+            self.last_update = now
+
+    def on_connect(self, client, userdata, flags, rc):
+        print('Connected to broker with result code ' + str(rc))
+        client.subscribe(self.topic_prefix + '+/set')
+        client.subscribe(self.direct_command_topic)
+        self.connected = True
+
+    def on_disconnect(self, client, userdata, rc):
+        print('Disconnected from broker')
+        self.connected = False
+
+    def on_message(self, client, userdata, msg):
+        m = msg.payload.decode()
+        print(f'Received: {msg.topic}: {m}')
+        if msg.topic == self.set_power_topic:
+            set_to_on = {'ON': True, 'OFF': False}[m]
+            self.tv.set_power(set_to_on)
+            if set_to_on:
+                # If off, it will take a while for it to report that it's on
+                # and this is a pain to deal with. Just pretend it turned on
+                # successfully.
+                self.update_power_to(True)
+            else:
+                self.update_power()
+        elif msg.topic == self.set_input_topic:
+            self.tv.set_input(m)
+            self.update_input()
+        elif msg.topic == self.set_volume_topic:
+            inc = {'UP': True, 'DOWN': False}.get(m)
+            if inc is None:
+                self.tv.set_volume(int(m))
+            else:
+                self.tv.inc_or_dec_volume(inc)
+            self.update_volume()
+        elif msg.topic == self.direct_command_topic:
+            if self.tv.fake:
+                print('TV is fake, ignoring direct command')
+            else:
+                self.tv.command(m)
+
+    def start(self, *args):
+        print('Trying to connect...')
+        try:
+            self.client.connect(*args)
+        except OSError:
+            print('Failed, going to try again...')
+
+        while True:
+            self.client.loop()
+            if self.connected:
+                self.update_all()
+            else:
+                print('Trying to reconnect...')
+                try:
+                    self.client.reconnect()
+                except OSError:
+                    print('Failed, going to try again...')
+                time.sleep(1)
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('model', metavar='MODEL')
+    parser.add_argument('broker', metavar='MQTT_BROKER')
+    parser.add_argument('--serial', '-s', metavar='SERIAL_DEVICE', default=LGTV.default_serial)
+    parser.add_argument('--topic-prefix', metavar='MQTT_TOPIC_PREFIX', default='lgtv/')
+    parser.add_argument('--interval', metavar='SECONDS', type=int, default=15)
+    parser.add_argument('--fake', action='store_true')
+    args = parser.parse_args()
+
+    tv = TvWrapper(args.model, args.serial, fake=args.fake)
+    client = MqttWrapper(tv, args.topic_prefix, timedelta(seconds=args.interval), )
+    client.start(args.broker, 1883, 60)
