@@ -9,74 +9,73 @@ import paho.mqtt.client as mqtt
 from libLGTV_serial import LGTV
 
 
-class TvWrapper:
-    def __init__(self, model, serial, fake=False):
-        self.tv = None if fake else LGTV(model, serial)
-        self.fake = fake
-        self.fake_on = False
-        self.last_known_input = 'hdmi1' if fake else None
-        self.last_known_volume = 0 if fake else None
+class FakeTvWrapper:
+    def __init__(self):
+        self.power = False
+        self.input = 'hdmi1'
+        self.volume = 0
 
     def command(self, name, data=None):
-        if self.fake:
-            raise ValueError('command can not be called if TV is fake')
+        print('Command:', name)
+        print('NOTE: Can\'t fake commands')
+        return None
+
+    def inc_or_dec_volume(self, inc):
+        if inc and self.volume < 100:
+            self.volume += 1
+        elif self.volume > 100:
+            self.volume -= 1
+
+
+class TvWrapper:
+    def __init__(self, model, serial):
+        self._tv = LGTV(model, serial)
+        self.last_known_input = None
+        self.last_known_volume = None
+
+    def command(self, name, data=None):
         print('Command:', name)
         status = self.tv.send(name, data)
         print('Command status:', repr(status))
         return status
 
-    def get_power(self):
-        if self.fake:
-            return self.fake_on
+    @property
+    def power(self):
         return bool(self.command('powerstatus'))
 
-    def set_power(self, set_to_on):
-        if self.fake:
-            self.fake_on = set_to_on
-        else:
-            self.command('poweron' if set_to_on else 'poweroff')
+    @power.setter
+    def power(self, set_to_on):
+        self.command('poweron' if set_to_on else 'poweroff')
 
-    def get_input(self):
-        if self.fake:
-            return self.last_known_input
+    @property
+    def input(self):
         value = self.command('inputstatus')
         if value is None:
             return self.last_known_input
         self.last_known_input = value
         return value
 
-    def set_input(self, input_name):
-        if self.fake:
-            self.last_known_input = input_name
-        else:
-            self.command('input' + input_name)
+    @input.setter
+    def input(self, input_name):
+        self.command('input' + input_name)
 
-    def get_volume(self):
-        if self.fake:
-            return self.last_known_volume
+    @property
+    def volume(self):
         value = self.command('volumelevel')
         if value is None:
             return self.last_known_volume
         self.last_known_volume = value
         return value
 
-    def set_volume(self, volume):
-        if self.fake:
-            self.last_known_volume = volume
-        else:
-            self.command('volumelevel', volume)
+    @volume.setter
+    def volume(self, volume):
+        self.command('volumelevel', volume)
 
     def inc_or_dec_volume(self, inc):
-        if self.fake:
-            if inc and self.last_known_volume < 100:
-                self.last_known_volume += 1
-            elif self.last_known_volume:
-                self.last_known_volume -= 1
-        else:
-            self.command('volume' + ('up' if inc else 'down'))
+        self.command('volume' + ('up' if inc else 'down'))
 
 
-class MqttWrapper:
+class LgtvMqttClient:
     def __init__(self, tv, topic_prefix, update_interval):
         self.tv = tv
 
@@ -110,15 +109,15 @@ class MqttWrapper:
         self.publish(self.get_power_topic, 'ON' if set_to_on else 'OFF')
 
     def update_power(self):
-        self.update_power_to(tv.get_power())
+        self.update_power_to(tv.power)
 
     def update_input(self):
-        value = self.tv.get_input()
+        value = self.tv.input
         if value is not None:
             self.publish(self.get_input_topic, value)
 
     def update_volume(self):
-        value = self.tv.get_volume()
+        value = self.tv.volume
         if value is not None:
             self.publish(self.get_volume_topic, str(value))
 
@@ -146,7 +145,7 @@ class MqttWrapper:
         print(f'Received: {msg.topic}: {m}')
         if msg.topic == self.set_power_topic:
             set_to_on = {'ON': True, 'OFF': False}[m]
-            self.tv.set_power(set_to_on)
+            self.tv.power = set_to_on
             if set_to_on:
                 # If off, it will take a while for it to report that it's on
                 # and this is a pain to deal with. Just pretend it turned on
@@ -155,12 +154,12 @@ class MqttWrapper:
             else:
                 self.update_power()
         elif msg.topic == self.set_input_topic:
-            self.tv.set_input(m)
+            self.tv.input = m
             self.update_input()
         elif msg.topic == self.set_volume_topic:
             inc = {'UP': True, 'DOWN': False}.get(m)
             if inc is None:
-                self.tv.set_volume(int(m))
+                self.tv.volume = int(m)
             else:
                 self.tv.inc_or_dec_volume(inc)
             self.update_volume()
@@ -200,6 +199,6 @@ if __name__ == '__main__':
     parser.add_argument('--fake', action='store_true')
     args = parser.parse_args()
 
-    tv = TvWrapper(args.model, args.serial, fake=args.fake)
-    client = MqttWrapper(tv, args.topic_prefix, timedelta(seconds=args.interval), )
+    tv = FakeTvWrapper() if args.fake else TvWrapper(args.model, args.serial)
+    client = LgtvMqttClient(tv, args.topic_prefix, timedelta(seconds=args.interval))
     client.start(args.broker, 1883, 60)
