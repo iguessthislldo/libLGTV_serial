@@ -5,6 +5,7 @@ After=multi-user.target
 
 [Service]
 Type=idle
+Restart=always
 ExecStart=lgtv-mqtt.py 42LB5D 192.168.1.100
 
 [Install]
