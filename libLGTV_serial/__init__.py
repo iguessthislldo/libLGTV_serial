@@ -6,7 +6,7 @@ import serial
 import os
 import time
 import tempfile
-from filelock import FileLock
+from .filelock import FileLock
 
 
 actual_codes = {}
