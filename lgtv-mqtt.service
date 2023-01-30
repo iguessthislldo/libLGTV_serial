@@ -1,0 +1,11 @@
+# Change TV Model and MQTT Broker as needed
+[Unit]
+Description=lgtv-mqtt
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=lgtv-mqtt.py 42LB5D 192.168.1.100
+
+[Install]
+WantedBy=multi-user.target

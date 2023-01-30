@@ -29,7 +29,7 @@ class FakeTvWrapper:
 
 class TvWrapper:
     def __init__(self, model, serial):
-        self._tv = LGTV(model, serial)
+        self.tv = LGTV(model, serial)
         self.last_known_input = None
         self.last_known_volume = None
 
