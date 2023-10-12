@@ -120,6 +120,13 @@ actual_codes['LB5D_etc'] = {
     'inputhdmi3': b"xb 00 92",
     'inputstatus': b"xb 00 ff",
 }
+actual_codes['C3PUA_etc'] = {
+    'inputhdmi1': b"xb 00 90",
+    'inputhdmi2': b"xb 00 91",
+    'inputhdmi3': b"xb 00 92",
+    'inputhdmi4': b"xb 00 93",
+    'inputstatus': b"xb 00 ff",
+}
 reverse_code_map = {
     'LK450_etc': ('LV2500', 'LV2520', 'LV3500', 'LV3520', 'LK330', 'LK430', 'LK450',
                     'LK520', 'PW340', 'PW350', 'PW350U', 'PW350R', 'LH20', 'LH200C',
@@ -134,6 +141,7 @@ reverse_code_map = {
     '01C_etc': ('01C', '01C-BA'),
     '02C_etc': ('02C', '02C-BA', '02C-BH'),
     'LB5D_etc': ('LB5D', 'LB4D'),
+    'C3PUA_etc': ('C3PUA'),
 }
 all_codes = {}
 # populate model suffix lookup hash
@@ -301,7 +309,7 @@ class LGTV:
         self.debounces[command] = wait_secs
 
 
-if __name__ == '__main__':
+def main():
     from argparse import ArgumentParser
     parser = ArgumentParser()
     parser.add_argument('model', metavar='MODEL')
@@ -326,3 +334,7 @@ if __name__ == '__main__':
             print(response)
         if response is None:
             sys.exit('TV rejected the command')
+
+
+if __name__ == '__main__':
+    main()
