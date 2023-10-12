@@ -141,7 +141,7 @@ reverse_code_map = {
     '01C_etc': ('01C', '01C-BA'),
     '02C_etc': ('02C', '02C-BA', '02C-BH'),
     'LB5D_etc': ('LB5D', 'LB4D'),
-    'C3PUA_etc': ('C3PUA'),
+    'C3PUA_etc': ('C3PUA',),
 }
 all_codes = {}
 # populate model suffix lookup hash
