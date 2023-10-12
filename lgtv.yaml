@@ -1,78 +1,75 @@
-switch:
-  - platform: mqtt
-    unique_id: lgtv_power
-    name: "LGTV Power"
-    state_topic: "lgtv/power"
-    command_topic: "lgtv/power/set"
-    payload_on: "ON"
-    payload_off: "OFF"
-    state_on: "ON"
-    state_off: "OFF"
-    qos: 2
+mqtt:
+  switch:
+    - unique_id: lgtv_power
+      name: "LGTV Power"
+      state_topic: "lgtv/power"
+      command_topic: "lgtv/power/set"
+      payload_on: "ON"
+      payload_off: "OFF"
+      state_on: "ON"
+      state_off: "OFF"
+      qos: 2
 
-select:
-  - platform: mqtt
-    unique_id: lgtv_input
-    name: "LGTV Input"
-    icon: "mdi:import"
-    state_topic: "lgtv/input"
-    command_topic: "lgtv/input/set"
-    options:
-      # - "digitalantenna"
-      # - "digitalcable"
-      # - "analogantenna"
-      # - "analogcable"
-      # - "av1"
-      # - "av2"
-      # - "comp1"
-      # - "comp2"
-      # - "rgbpc"
-      - "hdmi1"
-      - "hdmi2"
-      - "hdmi3"
-    qos: 2
-    availability:
-       topic: "lgtv/power"
-       payload_available: "ON"
-       payload_not_available: "OFF"
+  select:
+    - unique_id: lgtv_input
+      name: "LGTV Input"
+      icon: "mdi:import"
+      state_topic: "lgtv/input"
+      command_topic: "lgtv/input/set"
+      options:
+        # - "digitalantenna"
+        # - "digitalcable"
+        # - "analogantenna"
+        # - "analogcable"
+        # - "av1"
+        # - "av2"
+        # - "comp1"
+        # - "comp2"
+        # - "rgbpc"
+        - "hdmi1"
+        - "hdmi2"
+        - "hdmi3"
+        - "hdmi4"
+      qos: 2
+      availability:
+         topic: "lgtv/power"
+         payload_available: "ON"
+         payload_not_available: "OFF"
 
-number:
-  - platform: mqtt
-    unique_id: lgtv_volume
-    name: "LGTV Volume"
-    icon: "mdi:volume-high"
-    state_topic: "lgtv/volume"
-    command_topic: "lgtv/volume/set"
-    min: 0
-    max: 30
-    unit_of_measurement: "%"
-    qos: 2
-    availability:
-       topic: "lgtv/power"
-       payload_available: "ON"
-       payload_not_available: "OFF"
+  number:
+    - unique_id: lgtv_volume
+      name: "LGTV Volume"
+      icon: "mdi:volume-high"
+      state_topic: "lgtv/volume"
+      command_topic: "lgtv/volume/set"
+      min: 0
+      max: 30
+      unit_of_measurement: "%"
+      qos: 2
+      availability:
+         topic: "lgtv/power"
+         payload_available: "ON"
+         payload_not_available: "OFF"
 
 
-button:
-  - platform: mqtt
-    unique_id: lgtv_volume_up
-    name: "LGTV Volume Up"
-    icon: "mdi:volume-plus"
-    command_topic: "lgtv/volume/set"
-    payload_press: 'UP'
-    qos: 2
-    availability:
-       topic: "lgtv/power"
-       payload_available: "ON"
-       payload_not_available: "OFF"
-  - platform: mqtt
-    unique_id: lgtv_volume_down
-    name: "LGTV Volume Down"
-    icon: "mdi:volume-minus"
-    command_topic: "lgtv/volume/set"
-    payload_press: 'DOWN'
-    qos: 2
-    availability:
-       topic: "lgtv/power"
-       payload_available: "ON"
-       payload_not_available: "OFF"
+  button:
+    - unique_id: lgtv_volume_up
+      name: "LGTV Volume Up"
+      icon: "mdi:volume-plus"
+      command_topic: "lgtv/volume/set"
+      payload_press: 'UP'
+      qos: 2
+      availability:
+         topic: "lgtv/power"
+         payload_available: "ON"
+         payload_not_available: "OFF"
+    - unique_id: lgtv_volume_down
+      name: "LGTV Volume Down"
+      icon: "mdi:volume-minus"
+      command_topic: "lgtv/volume/set"
+      payload_press: 'DOWN'
+      qos: 2
+      availability:
+         topic: "lgtv/power"
+         payload_available: "ON"
+         payload_not_available: "OFF"
