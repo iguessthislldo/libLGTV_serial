@@ -159,8 +159,9 @@ class LGTV:
     def data_to_int(data):
         return int(data.decode(), base=16)
 
-    def __init__(self, model, port=None):
+    def __init__(self, model, port=None, verbose=False):
         self.model = model.upper()
+        self.verbose = verbose
 
         # Ignore digits which indicate the TV's screen size
         if model.startswith('M'):
@@ -223,8 +224,12 @@ class LGTV:
 
     # Returns None on error, full response otherwise
     def query_full(self, code):
+        if self.verbose:
+            print('Send:', code)
         self.connection.write(code + b'\r')
         response = self.connection.read(10)
+        if self.verbose:
+            print('Receive:', response)
         if self.is_success(response):
             return response
 
@@ -247,7 +252,10 @@ class LGTV:
         return response[-5:-3] == b'OK'
 
     def hex_bytes_delta(self, hex_bytes, delta):
-        return bytearray(hex(int(hex_bytes, 16) + delta)[2:4], 'ascii')
+        value = int(hex_bytes, 16) + delta
+        if value < 0 or value > 255:
+            raise ValueError(f'{value:02x} is out of byte range')
+        return bytearray(f'{value:02x}', 'ascii')
 
     def delta(self, code, delta):
         level = self.query_data(code)
@@ -318,9 +326,10 @@ def main():
     action.add_argument('-l', '--list-commands', action='store_true')
     action.add_argument('-c', '--command', metavar='COMMAND')
     parser.add_argument('-d', '--data', metavar='DATA')
+    parser.add_argument('-v', '--verbose', action='store_true')
     args = parser.parse_args()
 
-    tv = LGTV(args.model, args.serial)
+    tv = LGTV(args.model, args.serial, args.verbose)
     if args.list_commands:
         tv.available_commands()
     elif args.command:
